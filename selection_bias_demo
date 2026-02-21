@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selection Bias Demo — Clase 2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e0e0e0; padding: 24px; line-height: 1.6; }
+  
+  h1 { font-size: 1.6rem; color: #fff; margin-bottom: 4px; }
+  .subtitle { color: #9ca3af; font-size: 0.95rem; margin-bottom: 28px; }
+  
+  .container { max-width: 900px; margin: 0 auto; }
+  
+  .card {
+    background: #1a1d27;
+    border: 1px solid #2a2d3a;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 1.15rem; color: #fff; margin-bottom: 6px; }
+  .card .desc { color: #9ca3af; font-size: 0.85rem; margin-bottom: 16px; }
+  
+  .scenario-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .scenario-tab {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 2px solid #2a2d3a;
+    background: #1a1d27;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .scenario-tab:hover { border-color: #4a4d5a; }
+  .scenario-tab.active { border-color: #6366f1; background: #1e1f2e; color: #fff; }
+  .scenario-tab .tab-title { font-weight: 600; font-size: 0.95rem; display: block; }
+  .scenario-tab .tab-desc { font-size: 0.8rem; margin-top: 2px; display: block; opacity: 0.7; }
+  
+  .controls {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .control-group { display: flex; flex-direction: column; gap: 4px; }
+  .control-group label { font-size: 0.78rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+  .control-group input[type="range"] { width: 160px; accent-color: #6366f1; }
+  .control-value { font-size: 0.85rem; color: #c4b5fd; font-weight: 600; }
+  
+  .btn-run {
+    padding: 10px 24px;
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: auto;
+  }
+  .btn-run:hover { background: #5558e6; }
+  
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .result-box {
+    background: #12141c;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .result-box .label { font-size: 0.75rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+  .result-box .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+  .result-box .value.true-val { color: #34d399; }
+  .result-box .value.est-val { color: #60a5fa; }
+  .result-box .value.bias-val { color: #f87171; }
+  .result-box .value.bias-val.low { color: #34d399; }
+  
+  canvas { width: 100%; border-radius: 8px; background: #12141c; }
+  
+  .explanation {
+    background: #12141c;
+    border-left: 3px solid #6366f1;
+    border-radius: 0 8px 8px 0;
+    padding: 16px;
+    margin-top: 16px;
+    font-size: 0.88rem;
+    color: #c0c0c0;
+  }
+  .explanation strong { color: #c4b5fd; }
+  
+  .code-block {
+    background: #12141c;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: #a5b4fc;
+    overflow-x: auto;
+    margin: 10px 0;
+    line-height: 1.5;
+  }
+  .code-comment { color: #6b7280; }
+  .code-keyword { color: #c084fc; }
+  .code-number { color: #34d399; }
+  .code-string { color: #fbbf24; }
+  
+  .hist-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  @media (max-width: 640px) {
+    .results { grid-template-columns: 1fr; }
+    .hist-container { grid-template-columns: 1fr; }
+    .scenario-tabs { flex-direction: column; }
+    .controls { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔬 Selection Bias vs RCT — Demo Interactivo</h1>
+  <p class="subtitle">Basado en el DGP de la Clase 2: Y = exp(X₁ + X₂) + τ·W</p>
+
+  <!-- Scenario selection -->
+  <div class="scenario-tabs">
+    <div class="scenario-tab active" data-scenario="rct" onclick="selectScenario('rct')">
+      <span class="tab-title">🎲 RCT (Clase 2)</span>
+      <span class="tab-desc">W ~ Bernoulli(p), independiente de X</span>
+    </div>
+    <div class="scenario-tab" data-scenario="biased" onclick="selectScenario('biased')">
+      <span class="tab-title">⚠️ Con Selection Bias</span>
+      <span class="tab-desc">P(W=1) depende de X₁ — los grupos no son comparables</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <h2>Parámetros</h2>
+    <div class="desc">Ajustá los parámetros y corré la simulación</div>
+    <div class="controls">
+      <div class="control-group">
+        <label>N (sample size)</label>
+        <input type="range" id="slider-n" min="500" max="50000" step="500" value="10000" oninput="updateLabel('n')">
+        <span class="control-value" id="label-n">10,000</span>
+      </div>
+      <div class="control-group">
+        <label>τ (efecto real)</label>
+        <input type="range" id="slider-tau" min="-1" max="2" step="0.05" value="0.25" oninput="updateLabel('tau')">
+        <span class="control-value" id="label-tau">0.25</span>
+      </div>
+      <div class="control-group" id="bias-strength-group" style="display:none;">
+        <label>Fuerza del sesgo</label>
+        <input type="range" id="slider-bias" min="0" max="5" step="0.25" value="2" oninput="updateLabel('bias')">
+        <span class="control-value" id="label-bias">2.00</span>
+      </div>
+      <button class="btn-run" onclick="runSimulation()">▶ Simular (500 reps)</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <h2>Resultados</h2>
+    <div class="desc" id="results-desc">Corré la simulación para ver resultados</div>
+    <div class="results">
+      <div class="result-box">
+        <div class="label">Efecto Real (τ)</div>
+        <div class="value true-val" id="res-true">—</div>
+      </div>
+      <div class="result-box">
+        <div class="label">Promedio τ̂_DM</div>
+        <div class="value est-val" id="res-est">—</div>
+      </div>
+      <div class="result-box">
+        <div class="label">Sesgo (τ̂ − τ)</div>
+        <div class="value bias-val" id="res-bias">—</div>
+      </div>
+    </div>
+    
+    <div class="hist-container">
+      <canvas id="canvas-hist" height="260"></canvas>
+      <canvas id="canvas-x1" height="260"></canvas>
+    </div>
+    
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+
+  <!-- DGP Code -->
+  <div class="card">
+    <h2>DGP (Data Generating Process)</h2>
+    <div class="desc">Mismo DGP de la clase, con tratamiento modificado en el escenario sesgado</div>
+    <div class="code-block" id="code-display"></div>
+  </div>
+</div>
+
+<script>
+let currentScenario = 'rct';
+
+function selectScenario(s) {
+  currentScenario = s;
+  document.querySelectorAll('.scenario-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-scenario="${s}"]`).classList.add('active');
+  document.getElementById('bias-strength-group').style.display = s === 'biased' ? '' : 'none';
+  updateCode();
+}
+
+function updateLabel(param) {
+  const val = document.getElementById(`slider-${param}`).value;
+  const el = document.getElementById(`label-${param}`);
+  if (param === 'n') el.textContent = parseInt(val).toLocaleString();
+  else el.textContent = parseFloat(val).toFixed(2);
+}
+
+function updateCode() {
+  const el = document.getElementById('code-display');
+  if (currentScenario === 'rct') {
+    el.innerHTML = `<span class="code-comment"># RCT — tratamiento aleatorio (independiente de X)</span>
+X = np.random.uniform(-1, 1, size=(n, 3))
+<span class="code-keyword">W</span> = np.random.binomial(1, 0.5, size=n)  <span class="code-comment"># ← aleatorio!</span>
+Y = np.exp(X[:, 0] + X[:, 1]) + <span class="code-number">τ</span> * W`;
+  } else {
+    el.innerHTML = `<span class="code-comment"># Selection Bias — tratamiento depende de X₁</span>
+X = np.random.uniform(-1, 1, size=(n, 3))
+prob = sigmoid(<span class="code-number">bias_strength</span> * X[:, 0])  <span class="code-comment"># ← P(W=1) crece con X₁</span>
+<span class="code-keyword">W</span> = np.random.binomial(1, prob, size=n)  <span class="code-comment"># ← NO aleatorio!</span>
+Y = np.exp(X[:, 0] + X[:, 1]) + <span class="code-number">τ</span> * W
+<span class="code-comment"># X₁ alto → más probable W=1 → Y naturalmente más alto</span>
+<span class="code-comment"># → diferencia de medias captura τ + sesgo</span>`;
+  }
+}
+
+// --- Simulation engine ---
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+}
+
+function generateData(n, tau, scenario, biasStrength, rng) {
+  const X1 = [], X2 = [], X3 = [], W = [], Y = [];
+  for (let i = 0; i < n; i++) {
+    const x1 = rng() * 2 - 1;
+    const x2 = rng() * 2 - 1;
+    const x3 = rng() * 2 - 1;
+    let w;
+    if (scenario === 'rct') {
+      w = rng() < 0.5 ? 1 : 0;
+    } else {
+      const p = sigmoid(biasStrength * x1);
+      w = rng() < p ? 1 : 0;
+    }
+    const y = Math.exp(x1 + x2) + tau * w;
+    X1.push(x1); X2.push(x2); X3.push(x3); W.push(w); Y.push(y);
+  }
+  return { X1, X2, X3, W, Y };
+}
+
+function diffInMeans(data) {
+  let sumT = 0, countT = 0, sumC = 0, countC = 0;
+  for (let i = 0; i < data.W.length; i++) {
+    if (data.W[i] === 1) { sumT += data.Y[i]; countT++; }
+    else { sumC += data.Y[i]; countC++; }
+  }
+  return (sumT / countT) - (sumC / countC);
+}
+
+function runSimulation() {
+  const n = parseInt(document.getElementById('slider-n').value);
+  const tau = parseFloat(document.getElementById('slider-tau').value);
+  const biasStrength = parseFloat(document.getElementById('slider-bias').value);
+  const nSims = 500;
+  
+  const estimates = [];
+  const x1Treated = [];
+  const x1Control = [];
+  
+  for (let s = 0; s < nSims; s++) {
+    const rng = mulberry32(s * 1337 + 42);
+    const data = generateData(n, tau, currentScenario, biasStrength, rng);
+    estimates.push(diffInMeans(data));
+    
+    if (s === 0) {
+      for (let i = 0; i < data.W.length; i++) {
+        if (data.W[i] === 1) x1Treated.push(data.X1[i]);
+        else x1Control.push(data.X1[i]);
+      }
+    }
+  }
+  
+  const meanEst = estimates.reduce((a, b) => a + b, 0) / estimates.length;
+  const bias = meanEst - tau;
+  
+  document.getElementById('res-true').textContent = tau.toFixed(3);
+  document.getElementById('res-est').textContent = meanEst.toFixed(3);
+  
+  const biasEl = document.getElementById('res-bias');
+  biasEl.textContent = (bias >= 0 ? '+' : '') + bias.toFixed(3);
+  biasEl.className = 'value bias-val' + (Math.abs(bias) < 0.02 ? ' low' : '');
+  
+  drawHistogram('canvas-hist', estimates, tau, 'Distribución de τ̂_DM (500 sims)');
+  drawX1Hist('canvas-x1', x1Treated, x1Control);
+  
+  const expEl = document.getElementById('explanation');
+  expEl.style.display = '';
+  if (currentScenario === 'rct') {
+    expEl.innerHTML = `<strong>RCT:</strong> El tratamiento es independiente de X, así que los grupos tratado y control tienen la misma distribución de X₁. La diferencia de medias es <strong>insesgada</strong> — en promedio da τ = ${tau.toFixed(2)}. Mirá cómo las distribuciones de X₁ son prácticamente idénticas en ambos grupos.`;
+    document.getElementById('results-desc').textContent = '✅ Sin sesgo — τ̂_DM es insesgado para τ';
+  } else {
+    expEl.innerHTML = `<strong>Selection Bias:</strong> Como P(W=1) crece con X₁, el grupo tratado tiene valores de X₁ más altos. Dado que Y = exp(X₁ + X₂) + τ·W, valores altos de X₁ implican Y más alto <em>independientemente del tratamiento</em>. El estimador captura τ + sesgo = ${meanEst.toFixed(3)}. <strong>El sesgo es ${bias.toFixed(3)}</strong>. Mirá cómo las distribuciones de X₁ son claramente distintas entre grupos.`;
+    document.getElementById('results-desc').textContent = `⚠️ Sesgo de ${bias.toFixed(3)} — los grupos no son comparables`;
+  }
+  
+  updateCode();
+}
+
+function drawHistogram(canvasId, data, trueTau, title) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = 260;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  
+  ctx.fillStyle = '#12141c';
+  ctx.fillRect(0, 0, w, h);
+  
+  const margin = { top: 32, right: 20, bottom: 36, left: 50 };
+  const pw = w - margin.left - margin.right;
+  const ph = h - margin.top - margin.bottom;
+  
+  const min = Math.min(...data, trueTau) - 0.05;
+  const max = Math.max(...data, trueTau) + 0.05;
+  const nBins = 30;
+  const binW = (max - min) / nBins;
+  const bins = new Array(nBins).fill(0);
+  data.forEach(v => {
+    const idx = Math.min(Math.floor((v - min) / binW), nBins - 1);
+    if (idx >= 0) bins[idx]++;
+  });
+  const maxCount = Math.max(...bins);
+  
+  // Title
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '12px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(title, w / 2, 18);
+  
+  // Bars
+  bins.forEach((count, i) => {
+    const x = margin.left + (i / nBins) * pw;
+    const barH = (count / maxCount) * ph;
+    ctx.fillStyle = '#6366f180';
+    ctx.fillRect(x, margin.top + ph - barH, (pw / nBins) - 1, barH);
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(x, margin.top + ph - barH, (pw / nBins) - 1, barH);
+  });
+  
+  // True effect line
+  const trueX = margin.left + ((trueTau - min) / (max - min)) * pw;
+  ctx.strokeStyle = '#34d399';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(trueX, margin.top);
+  ctx.lineTo(trueX, margin.top + ph);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  ctx.fillStyle = '#34d399';
+  ctx.font = 'bold 11px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(`τ = ${trueTau.toFixed(2)}`, trueX, margin.top - 4);
+  
+  // Mean estimate line
+  const meanEst = data.reduce((a, b) => a + b, 0) / data.length;
+  const meanX = margin.left + ((meanEst - min) / (max - min)) * pw;
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(meanX, margin.top);
+  ctx.lineTo(meanX, margin.top + ph);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  ctx.fillStyle = '#60a5fa';
+  ctx.fillText(`E[τ̂] = ${meanEst.toFixed(3)}`, meanX, margin.top + ph + 14);
+  
+  // X axis
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const val = min + (i / 5) * (max - min);
+    const x = margin.left + (i / 5) * pw;
+    ctx.fillText(val.toFixed(2), x, margin.top + ph + 28);
+  }
+}
+
+function drawX1Hist(canvasId, treated, control) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = 260;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  
+  ctx.fillStyle = '#12141c';
+  ctx.fillRect(0, 0, w, h);
+  
+  const margin = { top: 32, right: 20, bottom: 36, left: 50 };
+  const pw = w - margin.left - margin.right;
+  const ph = h - margin.top - margin.bottom;
+  
+  const nBins = 30;
+  const min = -1, max = 1;
+  const binW = (max - min) / nBins;
+  
+  function makeBins(arr) {
+    const bins = new Array(nBins).fill(0);
+    arr.forEach(v => {
+      const idx = Math.min(Math.floor((v - min) / binW), nBins - 1);
+      if (idx >= 0) bins[idx]++;
+    });
+    // Normalize to density
+    const total = arr.length * binW;
+    return bins.map(b => b / total);
+  }
+  
+  const binsT = makeBins(treated);
+  const binsC = makeBins(control);
+  const maxDensity = Math.max(...binsT, ...binsC);
+  
+  // Title
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '12px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('Distribución de X₁ por grupo', w / 2, 18);
+  
+  // Control bars
+  binsC.forEach((density, i) => {
+    const x = margin.left + (i / nBins) * pw;
+    const barH = (density / maxDensity) * ph;
+    ctx.fillStyle = '#f8717140';
+    ctx.fillRect(x, margin.top + ph - barH, (pw / nBins) - 1, barH);
+  });
+  
+  // Treated bars
+  binsT.forEach((density, i) => {
+    const x = margin.left + (i / nBins) * pw;
+    const barH = (density / maxDensity) * ph;
+    ctx.fillStyle = '#60a5fa40';
+    ctx.fillRect(x, margin.top + ph - barH, (pw / nBins) - 1, barH);
+    ctx.strokeStyle = '#60a5fa80';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(x, margin.top + ph - barH, (pw / nBins) - 1, barH);
+  });
+  
+  // Legend
+  ctx.fillStyle = '#60a5fa';
+  ctx.font = '11px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillRect(margin.left + 8, margin.top + 6, 12, 12);
+  ctx.fillText('Tratados (W=1)', margin.left + 26, margin.top + 16);
+  
+  ctx.fillStyle = '#f87171';
+  ctx.fillRect(margin.left + 8, margin.top + 24, 12, 12);
+  ctx.fillText('Control (W=0)', margin.left + 26, margin.top + 34);
+  
+  // X axis
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const val = -1 + (i / 4) * 2;
+    const x = margin.left + (i / 4) * pw;
+    ctx.fillText(val.toFixed(1), x, margin.top + ph + 28);
+  }
+  ctx.fillText('X₁', w / 2, margin.top + ph + 14);
+}
+
+// Initial state
+updateCode();
+runSimulation();
+</script>
+</body>
+</html>
