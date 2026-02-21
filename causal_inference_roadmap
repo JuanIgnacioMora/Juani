@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Conceptual — Inferencia Causal & ML</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0e14;
+    --card: #13151e;
+    --card-border: #1e2130;
+    --text: #c8cad0;
+    --text-muted: #6b7084;
+    --text-bright: #ecedf0;
+    --accent-green: #4ade80;
+    --accent-green-dim: #4ade8020;
+    --accent-red: #f87171;
+    --accent-red-dim: #f8717120;
+    --accent-blue: #60a5fa;
+    --accent-blue-dim: #60a5fa18;
+    --accent-purple: #a78bfa;
+    --accent-purple-dim: #a78bfa15;
+    --accent-amber: #fbbf24;
+    --accent-amber-dim: #fbbf2415;
+    --flow-line: #2a2d42;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 64px;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .header-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-purple);
+    background: var(--accent-purple-dim);
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    color: var(--text-bright);
+    font-weight: 400;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  /* ── Flow connector ── */
+  .flow-connector {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .flow-arrow {
+    width: 2px;
+    height: 36px;
+    background: linear-gradient(to bottom, var(--flow-line), transparent);
+    position: relative;
+  }
+  .flow-arrow::after {
+    content: '▾';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--flow-line);
+    font-size: 14px;
+  }
+
+  /* ── Step cards ── */
+  .step {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 28px 28px 24px;
+    transition: border-color 0.3s;
+  }
+  .step:hover { border-color: #2e3250; }
+
+  .step-number {
+    position: absolute;
+    top: -13px;
+    left: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    padding: 3px 12px;
+    border-radius: 12px;
+    text-transform: uppercase;
+  }
+
+  .step h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    color: var(--text-bright);
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+  .step p {
+    font-size: 0.88rem;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  /* ── Color themes per step ── */
+  .step-1 .step-number { background: var(--accent-green-dim); color: var(--accent-green); border: 1px solid #4ade8030; }
+  .step-2 .step-number { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid #f8717130; }
+  .step-3 .step-number { background: var(--accent-blue-dim); color: var(--accent-blue); border: 1px solid #60a5fa30; }
+  .step-4 .step-number { background: var(--accent-amber-dim); color: var(--accent-amber); border: 1px solid #fbbf2430; }
+  .step-5 .step-number { background: var(--accent-purple-dim); color: var(--accent-purple); border: 1px solid #a78bfa30; }
+
+  /* ── Key equation box ── */
+  .eq-box {
+    background: #0a0c12;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .eq-box .hl-green { color: var(--accent-green); font-weight: 500; }
+  .eq-box .hl-red { color: var(--accent-red); font-weight: 500; }
+  .eq-box .hl-blue { color: var(--accent-blue); font-weight: 500; }
+  .eq-box .hl-amber { color: var(--accent-amber); font-weight: 500; }
+  .eq-box .hl-purple { color: var(--accent-purple); font-weight: 500; }
+  .eq-box .comment { color: #4a4d65; }
+
+  /* ── Insight callout ── */
+  .insight {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-top: 14px;
+    font-size: 0.84rem;
+  }
+  .insight-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .insight-green { background: var(--accent-green-dim); border-left: 3px solid var(--accent-green); }
+  .insight-red { background: var(--accent-red-dim); border-left: 3px solid var(--accent-red); }
+  .insight-blue { background: var(--accent-blue-dim); border-left: 3px solid var(--accent-blue); }
+  .insight-amber { background: var(--accent-amber-dim); border-left: 3px solid var(--accent-amber); }
+  .insight-purple { background: var(--accent-purple-dim); border-left: 3px solid var(--accent-purple); }
+
+  /* ── Comparison columns ── */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .compare-col {
+    background: #0a0c12;
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--card-border);
+  }
+  .compare-col h4 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .compare-col ul {
+    list-style: none;
+    font-size: 0.83rem;
+    color: var(--text-muted);
+  }
+  .compare-col ul li { padding: 3px 0; }
+  .compare-col ul li::before { margin-right: 6px; }
+  .col-good h4 { color: var(--accent-green); }
+  .col-good ul li::before { content: '✓'; color: var(--accent-green); }
+  .col-bad h4 { color: var(--accent-red); }
+  .col-bad ul li::before { content: '✗'; color: var(--accent-red); }
+
+  /* ── Vocab strip ── */
+  .vocab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .vocab-item {
+    background: #0a0c12;
+    border-radius: 8px;
+    padding: 12px 14px;
+    border: 1px solid var(--card-border);
+  }
+  .vocab-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .vocab-def {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  /* ── Timeline at bottom ── */
+  .timeline {
+    margin-top: 48px;
+    padding: 28px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+  }
+  .timeline h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--text-bright);
+    margin-bottom: 18px;
+    font-weight: 400;
+  }
+  .tl-items {
+    display: flex;
+    gap: 0;
+    position: relative;
+  }
+  .tl-items::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--accent-green), var(--accent-blue), var(--accent-purple));
+    opacity: 0.3;
+  }
+  .tl-item {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding-top: 28px;
+  }
+  .tl-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .tl-item:nth-child(1) .tl-dot { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green-dim); }
+  .tl-item:nth-child(2) .tl-dot { background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue-dim); }
+  .tl-item:nth-child(3) .tl-dot { background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber-dim); }
+  .tl-item:nth-child(4) .tl-dot { background: var(--accent-purple); box-shadow: 0 0 8px var(--accent-purple-dim); }
+  .tl-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 2px;
+  }
+  .tl-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .header h1 { font-size: 1.6rem; }
+    .compare, .vocab-grid { grid-template-columns: 1fr; }
+    .tl-items { flex-direction: column; gap: 14px; }
+    .tl-items::before { display: none; }
+    .tl-item { padding-top: 0; padding-left: 24px; text-align: left; }
+    .tl-dot { top: 4px; left: 0; }
+    .step { padding: 22px 18px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-tag">Clase 2 — Resumen conceptual</div>
+    <h1>De RCTs a Machine Learning</h1>
+    <p>El hilo conductor de la inferencia causal práctica</p>
+  </div>
+
+  <!-- ═══════ STEP 1 ═══════ -->
+  <div class="step step-1">
+    <div class="step-number">01 — La pregunta</div>
+    <h2>El Problema Fundamental de la Inferencia Causal</h2>
+    <p>Queremos saber el efecto <em>causal</em> de un tratamiento W sobre un resultado Y para un individuo i. Pero sólo observamos uno de los dos mundos posibles:</p>
+    <div class="eq-box">
+      <span class="hl-green">Δᵢ</span> = Yᵢ(1) − Yᵢ(0)  <span class="comment">← efecto causal individual</span><br>
+      <br>
+      Pero observamos:  Yᵢ = Wᵢ · Yᵢ(1) + (1 − Wᵢ) · Yᵢ(0)<br>
+      <span class="comment">↑ solo un outcome, nunca ambos → Δᵢ es inobservable</span>
+    </div>
+    <div class="insight insight-green">
+      <span class="insight-icon">💡</span>
+      <span>No podemos conocer efectos individuales. Por eso buscamos el <strong>ATE</strong> (Average Treatment Effect): τ = E[Yᵢ(1) − Yᵢ(0)], que promedia sobre toda la población.</span>
+    </div>
+  </div>
+
+  <div class="flow-connector"><div class="flow-arrow"></div></div>
+
+  <!-- ═══════ STEP 2 ═══════ -->
+  <div class="step step-2">
+    <div class="step-number">02 — El obstáculo</div>
+    <h2>Selection Bias</h2>
+    <p>El estimador natural es la diferencia de medias. Pero cuidado:</p>
+    <div class="eq-box">
+      <span class="hl-blue">τ̂_DM</span> = E[Y | W=1] − E[Y | W=0]<br>
+      <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <span class="hl-green">τ</span> + <span class="hl-red">{ E[Y(0)|W=1] − E[Y(0)|W=0] }</span><br>
+      <span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;efecto real &nbsp;&nbsp;&nbsp;&nbsp;sesgo de selección</span>
+    </div>
+    <p>Si los grupos tratado y control son <strong>sistemáticamente distintos</strong> (las X tienen distribuciones diferentes entre grupos), la diferencia de medias mezcla el efecto causal con las diferencias preexistentes.</p>
+    <div class="compare">
+      <div class="compare-col col-good">
+        <h4>Sesgo = 0 cuando</h4>
+        <ul>
+          <li>W es aleatorio (RCT)</li>
+          <li>W ⊥ {Y(0), Y(1)}</li>
+          <li>Grupos comparables en X</li>
+        </ul>
+      </div>
+      <div class="compare-col col-bad">
+        <h4>Sesgo ≠ 0 cuando</h4>
+        <ul>
+          <li>W depende de X (observacional)</li>
+          <li>Confounders no controlados</li>
+          <li>Grupos no comparables</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-connector"><div class="flow-arrow"></div></div>
+
+  <!-- ═══════ STEP 3 ═══════ -->
+  <div class="step step-3">
+    <div class="step-number">03 — La solución ideal</div>
+    <h2>RCTs + Reducción de Varianza</h2>
+    <p>Aleatorizar W garantiza que no hay sesgo. Pero τ̂_DM puede tener alta varianza. Agregar covariables a una regresión reduce la varianza sin introducir sesgo:</p>
+    <div class="eq-box">
+      <span class="comment"># Diferencia de medias — insesgado pero varianza alta</span><br>
+      <span class="hl-blue">τ̂_DM</span>: &nbsp;Yᵢ ~ α + τ·Wᵢ<br>
+      <br>
+      <span class="comment"># Regresión con covariables — misma insesgadez, menor varianza</span><br>
+      <span class="hl-blue">τ̂_REG</span>: Yᵢ ~ α + τ·Wᵢ + β₁X₁ + β₂X₂<br>
+      <br>
+      <span class="comment"># Lin (2013) — interacciones con tratamiento</span><br>
+      <span class="hl-blue">τ̂_LIN</span>: Yᵢ ~ α + τ·Wᵢ + β·X̃ + γ·(Wᵢ × X̃)
+    </div>
+    <div class="insight insight-blue">
+      <span class="insight-icon">⚖️</span>
+      <span>Variables relevantes reducen varianza. Variables irrelevantes la aumentan (vieron esto con Z₁…Z₂₀). Necesitás saber qué meter y qué no.</span>
+    </div>
+  </div>
+
+  <div class="flow-connector"><div class="flow-arrow"></div></div>
+
+  <!-- ═══════ STEP 4 ═══════ -->
+  <div class="step step-4">
+    <div class="step-number">04 — El mundo real</div>
+    <h2>¿Qué pasa sin aleatorización?</h2>
+    <p>En la mayoría de los casos reales no podés aleatorizar. Querés controlar por confounders usando regresión, pero:</p>
+    <div class="compare">
+      <div class="compare-col col-bad">
+        <h4>El dilema de la regresión lineal</h4>
+        <ul>
+          <li>200 covariables → ¿cuáles incluir?</li>
+          <li>Muchas irrelevantes → varianza sube</li>
+          <li>Pocas → dejás confounders afuera → sesgo</li>
+          <li>Relaciones no lineales → especificación incorrecta</li>
+        </ul>
+      </div>
+      <div class="compare-col col-good">
+        <h4>Lo que necesitás</h4>
+        <ul>
+          <li>Selección automática de variables</li>
+          <li>Capturar relaciones no lineales</li>
+          <li>Regularización contra overfitting</li>
+          <li>Flexibilidad sin especificación manual</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-connector"><div class="flow-arrow"></div></div>
+
+  <!-- ═══════ STEP 5 ═══════ -->
+  <div class="step step-5">
+    <div class="step-number">05 — La solución</div>
+    <h2>Machine Learning para Inferencia Causal</h2>
+    <p>ML entra no para predecir mejor, sino para <strong>controlar mejor</strong> por confounders y aislar el efecto causal. Es la herramienta que resuelve el dilema del paso anterior.</p>
+    <div class="vocab-grid">
+      <div class="vocab-item">
+        <div class="vocab-term" style="color: var(--accent-purple);">LASSO / Elastic Net</div>
+        <div class="vocab-def">Selección automática de variables. Pone a cero las irrelevantes.</div>
+      </div>
+      <div class="vocab-item">
+        <div class="vocab-term" style="color: var(--accent-purple);">Random Forest / GBM</div>
+        <div class="vocab-def">Capturan relaciones no lineales e interacciones sin especificarlas.</div>
+      </div>
+      <div class="vocab-item">
+        <div class="vocab-term" style="color: var(--accent-purple);">Double/Debiased ML</div>
+        <div class="vocab-def">Usa ML para estimar τ con garantías de insesgadez e inferencia válida.</div>
+      </div>
+      <div class="vocab-item">
+        <div class="vocab-term" style="color: var(--accent-purple);">Causal Forests</div>
+        <div class="vocab-def">Estiman efectos heterogéneos — τ puede variar por individuo.</div>
+      </div>
+    </div>
+    <div class="insight insight-purple">
+      <span class="insight-icon">🎯</span>
+      <span><strong>Idea clave:</strong> ML es una herramienta de <em>estimación</em>, no el fin. El framework causal (potential outcomes, confounders, selection bias) es lo que te dice <em>qué estimar</em>. ML te da el <em>cómo</em>.</span>
+    </div>
+  </div>
+
+  <!-- ═══════ TIMELINE ═══════ -->
+  <div class="timeline">
+    <h3>Roadmap del curso</h3>
+    <div class="tl-items">
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-label">RCTs</div>
+        <div class="tl-desc">Aleatorización, DM, Lin</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-label">Datos observacionales</div>
+        <div class="tl-desc">Regresión, matching, propensity</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-label">ML Foundations</div>
+        <div class="tl-desc">Trees, LASSO, cross-validation</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-label">ML + Causal</div>
+        <div class="tl-desc">DML, causal forests, HTE</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
